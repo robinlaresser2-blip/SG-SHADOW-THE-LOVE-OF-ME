@@ -1,0 +1,10 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { getClientMapBundles } = require('./ClientMapBundles');
+let result;
+getClientMapBundles({}, { json(value) { result = JSON.parse(JSON.stringify(value)); } });
+assert.deepEqual(result.Bundles, []);
+assert.equal(typeof result.BundleHash, 'string');
+const source = require('node:fs').readFileSync(require.resolve('./index.js'), 'utf8');
+assert(source.indexOf("app.use(authenticate);") < source.indexOf("app.get('/custom-maps/bundles/client'"));
+console.log('Empty UGC catalog response and authenticated route placement verified.');

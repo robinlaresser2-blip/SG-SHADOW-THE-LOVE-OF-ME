@@ -1,0 +1,20 @@
+'use strict';
+const assert = require('node:assert/strict');
+const adapter = require('./PurchaseV2');
+let called = 0;
+const errors = [];
+const handler = adapter(req => { called++; assert.equal(req.params.item, 'test'); return 'delegated'; }, code => errors.push(code));
+function response() { return { status(n) { this.code = n; return this; }, json(body) { this.body = body; return this; } }; }
+assert.equal(handler({ user: {}, body: { ItemId: 'test', ExtraParameters: {} } }, response()), 'delegated');
+assert.equal(handler({ body: { ItemId: 'test' } }, response()).code, 401);
+assert.equal(handler({ user: {}, body: {} }, response()).code, 400);
+assert.equal(handler({ user: {}, body: { ItemId: 'test', ExtraParameters: { receipt: 'unknown' } } }, response()).code, 400);
+assert.equal(called, 1);
+assert.equal(handler({ user: {}, body: { itemId: 'test', extraParameters: {} } }, response()), 'delegated');
+assert.equal(handler({ user: {}, body: { ItemId: 'test', itemId: 'other' } }, response()).code, 400);
+assert.equal(handler({ user: {}, body: { itemId: 'test', extraParameters: { receipt: 'secret' } } }, response()).code, 400);
+assert.equal(called, 2);
+assert(errors.includes('ITEM_ID_REQUIRED'));
+assert(errors.includes('UNSUPPORTED_PURCHASE_PARAMETERS'));
+assert(!JSON.stringify(errors).includes('secret'));
+console.log('Purchase V2 mapping, authentication and unsupported parameter checks passed.');
